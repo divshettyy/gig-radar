@@ -42,6 +42,25 @@ button.p{background:var(--accent);color:#042a1b;border-color:var(--accent)}
 .tags{display:flex;gap:5px;flex-wrap:wrap}.tg{font-size:10.5px;color:var(--faint);background:var(--s2);padding:2px 7px;border-radius:5px}
 .apply{text-align:center;background:var(--accent);color:#042a1b;font-weight:700;font-size:12.5px;padding:7px;border-radius:8px}
 .empty{color:var(--faint);text-align:center;padding:50px}
+.tabs{display:flex;gap:4px;padding:0 18px;border-bottom:1px solid var(--line);background:var(--surface);position:sticky;top:0;z-index:4}
+.tab{background:none;border:none;padding:12px 14px;font:600 13.5px/1 Inter;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px;cursor:pointer}
+.tab[aria-selected=true]{color:var(--fg);border-bottom-color:var(--accent)}
+.lead{font-size:13.5px;color:var(--muted);background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:10px;padding:12px 14px;margin-bottom:14px}
+.legend{font-size:11px;color:var(--faint);display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.pcat h2{font:600 14.5px/1 'Space Grotesk',Inter;margin:12px 0 10px;color:var(--fg);padding-bottom:6px;border-bottom:1px solid var(--line)}
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px}
+.pcard{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:13px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.pcard .ph{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.pcard h3{font:600 14.5px/1.2 Inter;margin:0}.pcard h3 a{color:var(--fg)}
+.pcard .diff{font-size:10px;font-weight:700;display:inline-flex;align-items:center;gap:5px;white-space:nowrap;color:var(--muted)}
+.pcard .diff i{width:7px;height:7px;border-radius:50%;display:inline-block;background:var(--faint)}
+.pcard .pw{font-size:12.5px;color:var(--muted)}
+.pcard .pay{font-size:11.5px;color:var(--accent);font-weight:600;margin-top:auto}
+.reqs{display:flex;gap:5px;flex-wrap:wrap}
+.req{font-size:10px;font-weight:600;padding:2px 7px;border-radius:5px;background:var(--s2);color:var(--muted);border:1px solid var(--line)}
+.req.ok{background:var(--accentw);color:var(--accentfg);border-color:transparent}
+.req.bad{background:var(--neww);color:var(--new);border-color:transparent}
+.req.stop{color:var(--danger);border-color:var(--danger);background:transparent}
 </style>
 </head>
 <body>
@@ -51,7 +70,11 @@ button.p{background:var(--accent);color:#042a1b;border-color:var(--accent)}
   <button class="p" id="refresh">↻ Refresh now</button>
   <div class="meta" id="meta">Loading…</div>
 </header>
-<div class="wrap">
+<div class="tabs">
+  <button class="tab" id="tf" aria-selected="true">Live feed</button>
+  <button class="tab" id="tp" aria-selected="false">Platforms</button>
+</div>
+<div class="wrap" id="feedView">
   <div class="bar">
     <label class="search"><span>🔍</span><input id="q" type="search" placeholder="Search title, company, skill…"></label>
     <label class="toggle"><input type="checkbox" id="newOnly"> New only</label>
@@ -60,6 +83,15 @@ button.p{background:var(--accent);color:#042a1b;border-color:var(--accent)}
   <div class="count" id="count"></div>
   <div class="grid" id="grid"></div>
   <div class="empty" id="empty" hidden>No gigs match.</div>
+</div>
+<div class="wrap" id="plView" hidden>
+  <div class="lead">All the sites to apply on. Most need only a free account — chips say what's required. <b>You're in India:</b> flip the toggle to hide platforms that lock India out. These are checked manually; the Live feed is auto-pulled.</div>
+  <div class="bar">
+    <label class="search" style="max-width:340px"><span>🔍</span><input id="plq" type="search" placeholder="Search platforms…"></label>
+    <label class="toggle"><input type="checkbox" id="plIndia"> Hide platforms not open to India</label>
+  </div>
+  <div class="legend" id="plLegend"></div>
+  <div id="plCats"></div>
 </div>
 <script>
 const $=s=>document.querySelector(s);
@@ -120,6 +152,69 @@ function render(){
   });
   g.appendChild(fr);
 }
+/* ---- Platforms directory ---- */
+const CATS=[['market','Freelance marketplaces — bid or sell, account needed'],['ai','AI training & data — apply + screening; you may NOT use AI on the task itself'],['micro','Microtask sites — tiny jobs, fast signup'],['write','Writing & content marketplaces'],['trans','Transcription & captioning'],['sell','Sell digital products — no client, make once, earn repeatedly'],['board','Remote job boards — account to apply']];
+const REQ={account:['Account',''],free:['Free to join','ok'],test:['Skill test',''],screening:['Application/screening',''],'connects$':['Paid bids/credits','stop'],'subscription$':['Paid subscription','stop'],KYC:['ID/KYC',''],noAI:['No AI on tasks','bad'],india:['India OK','ok'],usuk:['US/UK only — not India','stop'],verifygeo:['Check your country','bad'],portfolio:['Portfolio helps','']};
+const DIFF={easy:['Easy start','var(--accent)'],med:['Medium','var(--info)'],hard:['Hard / slow','var(--danger)']};
+const PLATFORMS=[
+ {c:'market',n:'Fiverr',u:'https://www.fiverr.com',w:'Package a service as a "gig". India OK. New sellers rank low — niche keyword + fast replies.',r:['account','free','india'],p:'You set price; 20% fee',d:'easy'},
+ {c:'market',n:'Upwork',u:'https://www.upwork.com',w:'Bid on client jobs. Biggest pool. Approval tightened 2026; bids cost Connects.',r:['account','connects$','KYC','india','portfolio'],p:'Hourly/fixed; 10% fee',d:'med'},
+ {c:'market',n:'Contra',u:'https://contra.com',w:'0% freelancer commission. Smaller pool; great free portfolio home.',r:['account','free','india'],p:'0% to you',d:'easy'},
+ {c:'market',n:'Truelancer',u:'https://www.truelancer.com',w:'India-founded; small gigs in writing, data, design, dev. Lower competition.',r:['account','free','india'],p:'Fixed/hourly; fee',d:'easy'},
+ {c:'market',n:'PeoplePerHour',u:'https://www.peopleperhour.com',w:'UK-centric; Offers + proposals. Profile is approval-gated.',r:['account','screening','portfolio','verifygeo'],p:'Fixed/hourly; fee',d:'med'},
+ {c:'market',n:'Guru',u:'https://www.guru.com',w:'Job board + workrooms; free tier = limited bids.',r:['account','free','india'],p:'Fixed/hourly; fee',d:'med'},
+ {c:'market',n:'Freelancer.com',u:'https://www.freelancer.com',w:'Huge low-end marketplace + contests. Bids limited/paid. Noisy.',r:['account','connects$','india'],p:'Fixed/hourly; fee',d:'med'},
+ {c:'market',n:'Workana',u:'https://www.workana.com',w:'Marketplace (LatAm-strong, global). Confirm India payout.',r:['account','free','verifygeo'],p:'Fixed/hourly; fee',d:'med'},
+ {c:'ai',n:'Outlier',u:'https://outlier.ai',w:'RLHF, writing & coding eval. India accepted, PayPal weekly. Coding pays most.',r:['account','screening','test','noAI','india'],p:'$14–50/hr; PayPal',d:'med'},
+ {c:'ai',n:'Mercor',u:'https://mercor.com',w:'AI-trainer + expert gigs by interview. India present.',r:['account','screening','noAI','india'],p:'$10–100/hr; Stripe/Wise',d:'med'},
+ {c:'ai',n:'Turing',u:'https://www.turing.com',w:'For developers: coding-data + remote dev roles. Coding tests. Strong India.',r:['account','screening','test','india'],p:'$ by skill; Payoneer',d:'hard'},
+ {c:'ai',n:'Mindrift',u:'https://www.mindrift.ai',w:'Freelance AI-training projects (writing, code, domain). Apply + screening.',r:['account','screening','noAI','verifygeo'],p:'Per-project; verify',d:'med'},
+ {c:'ai',n:'Remotasks',u:'https://www.remotasks.com',w:'Annotation + AI tasks, 90+ countries. PayPal/AirTM. No AI on the task.',r:['account','screening','noAI','verifygeo'],p:'Per task; PayPal/AirTM',d:'med'},
+ {c:'ai',n:'TELUS International AI',u:'https://www.telusinternational.com/careers/ai-community',w:'Search/ads/data rater + annotation (ex-Lionbridge). India varies by project.',r:['account','screening','verifygeo'],p:'Hourly; varies',d:'med'},
+ {c:'ai',n:'Prolific',u:'https://www.prolific.com',w:'Paid research studies (not annotation). Cash out ~$6 PayPal. Confirm India.',r:['account','free','verifygeo'],p:'Per study; PayPal',d:'easy'},
+ {c:'ai',n:'Appen',u:'https://www.appen.com',w:'Crowd AI-data (search eval, transcription, collection). Queues often empty.',r:['account','screening','verifygeo'],p:'Hourly/task; PayPal',d:'med'},
+ {c:'ai',n:'DataAnnotation',u:'https://www.dataannotation.tech',w:'Top-paying LLM work — BUT US/UK/CA/IE/AU/NZ only. Not open to India.',r:['account','test','noAI','usuk'],p:'$20–150/hr; PayPal',d:'med'},
+ {c:'micro',n:'Clickworker',u:'https://www.clickworker.com',w:'Short jobs: research, writing, data, AI micro-tasks. India OK; assessments unlock work.',r:['account','test','india'],p:'Per task; PayPal/SEPA',d:'easy'},
+ {c:'micro',n:'Microworkers',u:'https://www.microworkers.com',w:'HIT-style micro-jobs. India OK; withdraw at threshold.',r:['account','india'],p:'Per task; low',d:'easy'},
+ {c:'micro',n:'Toloka',u:'https://toloka.ai',w:'Crowd + expert AI-data; shifting to vetted experts. Confirm country.',r:['account','screening','verifygeo'],p:'Per task; verify',d:'med'},
+ {c:'micro',n:'OneForma',u:'https://www.oneforma.com',w:'Crowd data: transcription, categorization, collection, AI eval. Apply per project.',r:['account','screening','verifygeo'],p:'Per project; varies',d:'med'},
+ {c:'micro',n:'Amazon MTurk',u:'https://www.mturk.com',w:'Classic micro-task market. Worker approval + India payout limited — check.',r:['account','screening','verifygeo'],p:'Per HIT; low',d:'hard'},
+ {c:'write',n:'iWriter',u:'https://www.iwriter.com',w:'Content mill; pass a sample, claim orders. Pay rises with rating.',r:['account','test','verifygeo'],p:'$ per article by tier',d:'easy'},
+ {c:'write',n:'Crowd Content',u:'https://www.crowdcontent.com',w:'Writing marketplace; graded onboarding, per-word by level.',r:['account','test','verifygeo'],p:'$0.02–0.08/word',d:'med'},
+ {c:'write',n:'nDash',u:'https://www.ndash.com',w:'Higher-end content; free profile + Stripe, pitch brand briefs.',r:['account','free','portfolio','verifygeo'],p:'$ per piece; Stripe',d:'med'},
+ {c:'write',n:'Constant Content',u:'https://www.constant-content.com',w:'Write on spec and sell from a catalog. Passive once listed.',r:['account','verifygeo'],p:'You price; sells on demand',d:'med'},
+ {c:'write',n:'Textbroker',u:'https://www.textbroker.com',w:'Big content mill — author accounts region-restricted (US/select). Check first.',r:['account','test','usuk'],p:'$ per word by rating',d:'easy'},
+ {c:'trans',n:'GoTranscript',u:'https://www.gotranscript.com',w:'Transcription + captions; free test, many languages, global incl. India.',r:['account','test','india'],p:'$0.65–1.75/audio-min',d:'easy'},
+ {c:'trans',n:'TranscribeMe',u:'https://www.transcribeme.com',w:'Short audio clips, flexible, global. Short test. PayPal.',r:['account','test','india'],p:'~$15–22/audio-hr; PayPal',d:'easy'},
+ {c:'trans',n:'Scribie',u:'https://scribie.com',w:'Transcription from short files; free test, globally open. PayPal.',r:['account','test','india'],p:'~$5–20/audio-hr; PayPal',d:'easy'},
+ {c:'trans',n:'Rev',u:'https://www.rev.com/freelancers',w:'Transcription + captions, weekly PayPal — but signup US-restricted lately.',r:['account','test','usuk'],p:'$0.30–1.10/audio-min',d:'easy'},
+ {c:'trans',n:'3Play Media',u:'https://www.3playmedia.com',w:'Captioning/subtitling; pays above general transcription. Region-limited.',r:['account','test','usuk'],p:'$ per media-min',d:'med'},
+ {c:'sell',n:'PromptBase',u:'https://promptbase.com',w:'Sell tested prompt packs — no client. Build + stress-test with Claude. India OK.',r:['account','free','india'],p:'You price (~$5); 20% cut',d:'easy'},
+ {c:'sell',n:'Gumroad',u:'https://gumroad.com',w:'Sell any digital product from your own link. India payouts supported.',r:['account','KYC','india'],p:'You price; 10%+$0.50',d:'easy'},
+ {c:'sell',n:'Etsy',u:'https://www.etsy.com/sell',w:'Sell digital templates/printables. Must disclose AI items; add human value.',r:['account','KYC','subscription$','india'],p:'You price; listing+6.5%',d:'med'},
+ {c:'sell',n:'Payhip',u:'https://payhip.com',w:'Free storefront for digital downloads. Simple, India-friendly.',r:['account','free','india'],p:'You price; free tier 5%',d:'easy'},
+ {c:'sell',n:'Creative Fabrica',u:'https://www.creativefabrica.com',w:'Marketplace with growing AI-prompt + design category. Apply to sell.',r:['account','screening','verifygeo'],p:'You price; cut',d:'med'},
+ {c:'board',n:'Internshala',u:'https://internshala.com',w:'India-first: part-time internships + fresher gigs (writing, content, data, dev).',r:['account','free','india'],p:'Stipend/fixed; INR',d:'easy'},
+ {c:'board',n:'Wellfound',u:'https://wellfound.com',w:'Startup jobs incl. remote/part-time + contract. Free profile, apply to founders.',r:['account','free','portfolio','india'],p:'Role salary/contract',d:'med'},
+ {c:'board',n:'FlexJobs',u:'https://www.flexjobs.com',w:'Hand-screened remote/part-time listings — access needs a paid subscription.',r:['account','subscription$','india'],p:'Role pay; curated',d:'med'}
+];
+const pf={q:'',hideNonIndia:false};
+function renderLegend(){const e=$('#plLegend');if(e.childElementCount)return;[['ok','India OK / free'],['bad','Check country / no-AI rule'],['stop','Paid or region-locked']].forEach(([cls,txt])=>{const s=el('span');s.append(el('span','req '+cls,'■'),el('span',null,' '+txt));e.appendChild(s);});}
+function plKeep(p){if(pf.hideNonIndia&&p.r.includes('usuk'))return false;if(pf.q){const h=(p.n+' '+p.w+' '+p.r.join(' ')).toLowerCase();if(!h.includes(pf.q))return false;}return true;}
+function renderPlatforms(){renderLegend();const wrap=$('#plCats');wrap.innerHTML='';
+ CATS.forEach(([key,label])=>{const list=PLATFORMS.filter(p=>p.c===key&&plKeep(p));if(!list.length)return;
+  const sec=el('div','pcat');sec.appendChild(el('h2',null,label));const g=el('div','pgrid');
+  list.forEach(p=>{const c=el('div','pcard');const ph=el('div','ph');const h=el('h3');const a=el('a',null,p.n);a.href=p.u;a.target='_blank';a.rel='noopener';h.appendChild(a);ph.appendChild(h);
+   const df=el('span','diff');const di=el('i');di.style.background=DIFF[p.d][1];df.append(di,DIFF[p.d][0]);ph.appendChild(df);c.appendChild(ph);
+   c.appendChild(el('div','pw',p.w));const rq=el('div','reqs');p.r.forEach(k=>{const m=REQ[k];if(m)rq.appendChild(el('span','req '+(m[1]||''),m[0]));});c.appendChild(rq);
+   c.appendChild(el('div','pay','💵 '+p.p));g.appendChild(c);});
+  sec.appendChild(g);wrap.appendChild(sec);});
+ if(!wrap.childElementCount)wrap.appendChild(el('div','empty','No platforms match.'));}
+function selTab(which){const feed=which==='feed';$('#tf').setAttribute('aria-selected',feed);$('#tp').setAttribute('aria-selected',!feed);$('#feedView').hidden=!feed;$('#plView').hidden=feed;if(!feed)renderPlatforms();window.scrollTo(0,0);}
+$('#tf').addEventListener('click',()=>selTab('feed'));
+$('#tp').addEventListener('click',()=>selTab('platforms'));
+$('#plq').addEventListener('input',e=>{pf.q=e.target.value.trim().toLowerCase();renderPlatforms();});
+$('#plIndia').addEventListener('change',e=>{pf.hideNonIndia=e.target.checked;renderPlatforms();});
 $('#q').addEventListener('input',e=>{f.q=e.target.value.trim().toLowerCase();render();});
 $('#newOnly').addEventListener('change',e=>{f.newOnly=e.target.checked;render();});
 $('#refresh').addEventListener('click',async()=>{const b=$('#refresh');b.disabled=true;b.textContent='↻ …';try{await fetch('/api/refresh',{method:'POST'});}catch(e){}await load();b.disabled=false;b.textContent='↻ Refresh now';});

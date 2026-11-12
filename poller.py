@@ -3,7 +3,7 @@ import time
 
 import store
 import notify
-from classify import classify
+from classify import classify, keep
 from sources import SOURCES
 
 STATUS = {}  # name -> {"state": ok|bad|skip, "n": int, "at": ts, "err": str}
@@ -18,6 +18,8 @@ def poll_cycle(force=False):
             continue
         try:
             jobs = fn()
+            jobs = [j for j in jobs
+                    if keep(j.get("title"), j.get("tags"), j.get("desc"), j.get("loc"), name)]
             for j in jobs:
                 j["domain"] = classify(j.get("title"), j.get("tags"), j.get("desc"))
             collected.extend(jobs)

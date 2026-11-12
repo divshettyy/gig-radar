@@ -43,3 +43,38 @@ def classify(title, tags, desc):
     return "other"
 
 LABELS = {k: lbl for k, lbl, _ in DOMAINS}
+
+# Roles that need hands/presence or can't be delivered by an AI agent remotely.
+# Multi-word where a bare word would false-positive (e.g. "server" = web server).
+PHYSICAL = [
+    "nurse", "nursing", "registered nurse", "lpn", "cna", "caregiver", "nanny",
+    "babysitter", "housekeep", "janitor", "custodian", "cleaner", "cleaning staff",
+    "dishwasher", "barista", "bartender", "waiter", "waitress", "line cook", "chef",
+    "kitchen staff", "food service", "restaurant server", "warehouse", "forklift",
+    "picker packer", "material handler", "construction", "carpenter", "electrician",
+    "plumber", "hvac", "welder", "mason", "roofer", "mechanic", "machinist",
+    "machine operator", "assembly line", "factory worker", "production worker",
+    "security guard", "cashier", "retail associate", "retail store", "store associate",
+    "sales associate", "stocker", "farm worker", "landscap", "gardener", "hairdresser",
+    "barber", "esthetician", "massage therapist", "phlebotom", "dentist",
+    "dental assistant", "dental hygienist", "physician", "surgeon", "veterinar",
+    "lifeguard", "delivery driver", "truck driver", "cdl", "rideshare", "chauffeur",
+    "courier", "field technician", "field service", "equipment installer",
+]
+
+def keep(title, tags, desc, loc, src):
+    """True if the gig is remote AND plausibly doable with an AI agent."""
+    t = (str(title) + " " + " ".join(tags or []) + " " + str(desc or "") + " "
+         + str(loc or "")).lower()
+    if any(p in t for p in PHYSICAL):
+        return False
+    locl = str(loc or "").lower()
+    # Arbeitnow mixes onsite EU roles: loc is "Remote" when remote, else a city.
+    if src == "Arbeitnow" and "remote" not in locl:
+        return False
+    # HN posts tag ONSITE / REMOTE in the body.
+    if src == "HackerNews":
+        tl = (str(title) + " " + str(desc)).lower()
+        if ("onsite" in tl or "on-site" in tl or "on site" in tl) and "remote" not in tl:
+            return False
+    return True
