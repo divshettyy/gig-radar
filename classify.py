@@ -46,11 +46,17 @@ LABELS = {k: lbl for k, lbl, _ in DOMAINS}
 
 # Roles that need hands/presence or can't be delivered by an AI agent remotely.
 # Multi-word where a bare word would false-positive (e.g. "server" = web server).
+# "cleaner" and "warehouse" are deliberately NOT bare here: they silently
+# dropped legitimate remote gigs like "Freelance Data Cleaner" and "Data
+# Warehouse Engineer (Remote)" (verified -- classify.keep() returned False
+# for both before this fix). Spelled out as specific roles instead.
 PHYSICAL = [
     "nurse", "nursing", "registered nurse", "lpn", "cna", "caregiver", "nanny",
-    "babysitter", "housekeep", "janitor", "custodian", "cleaner", "cleaning staff",
+    "babysitter", "housekeep", "janitor", "custodian", "house cleaner",
+    "office cleaner", "commercial cleaner", "residential cleaner", "cleaning staff",
     "dishwasher", "barista", "bartender", "waiter", "waitress", "line cook", "chef",
-    "kitchen staff", "food service", "restaurant server", "warehouse", "forklift",
+    "kitchen staff", "food service", "restaurant server", "warehouse worker",
+    "warehouse associate", "warehouse staff", "warehouse operative", "forklift",
     "picker packer", "material handler", "construction", "carpenter", "electrician",
     "plumber", "hvac", "welder", "mason", "roofer", "mechanic", "machinist",
     "machine operator", "assembly line", "factory worker", "production worker",
