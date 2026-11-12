@@ -63,7 +63,7 @@ button.p{background:var(--accent);color:#042a1b;border-color:var(--accent)}
 </div>
 <script>
 const $=s=>document.querySelector(s);
-const LABELS={ai:'AI / Chatbot',write:'Writing',code:'Coding',data:'Data / Research',seo:'SEO',deck:'Slides',trans:'Translation',sheet:'Spreadsheet',market:'Marketing',admin:'Resume / Admin',other:'Other'};
+const LABELS={ai:'AI / Chatbot',write:'Writing',code:'Coding',data:'Data / Research',seo:'SEO',deck:'Slides',trans:'Translation',sheet:'Spreadsheet',market:'Marketing',admin:'Resume / Admin',other:'Misc · try with Claude'};
 let ALL=[]; const f={q:'',dom:new Set(),newOnly:false};
 function ago(ms){if(!ms)return'';const d=Date.now()-ms,h=36e5,day=864e5;if(d<h)return Math.max(1,Math.round(d/6e4))+'m ago';if(d<day)return Math.round(d/h)+'h ago';return Math.round(d/day)+'d ago';}
 function el(t,c,x){const e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e;}

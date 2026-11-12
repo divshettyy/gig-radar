@@ -30,7 +30,7 @@ DOMAINS = [
     ("admin", "Resume / Docs / Admin",
      ["resume", "cv", "cover letter", "linkedin", "virtual assistant", "documentation",
       "technical writer", "sop", "proposal", "grant"]),
-    ("other", "Other remote", []),
+    ("other", "Misc - try with Claude", []),
 ]
 
 def classify(title, tags, desc):
