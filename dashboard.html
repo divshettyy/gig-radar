@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gig Radar (local)</title>
+<style>
+:root{--bg:#0c1118;--surface:#141b26;--s2:#1b2432;--line:#273244;--fg:#eef2f8;--muted:#9aa7bb;--faint:#6b7892;--accent:#2bd48a;--accentw:#123326;--accentfg:#9fecc8;--new:#f0a94b;--neww:#38280f;--danger:#ff6b5e;--info:#6aa3ff;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.45 Inter,system-ui,-apple-system,sans-serif}
+a{color:var(--info);text-decoration:none}a:hover{text-decoration:underline}
+header{position:sticky;top:0;z-index:5;background:var(--surface);border-bottom:1px solid var(--line);padding:12px 18px;display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center}
+h1{font:600 18px/1 'Space Grotesk',Inter,sans-serif;margin:0;letter-spacing:-.02em}
+.sub{font-size:11px;color:var(--faint);text-transform:uppercase;letter-spacing:.05em}
+.sp{margin-left:auto}
+button{font:inherit;cursor:pointer;background:var(--s2);color:var(--fg);border:1px solid var(--line);border-radius:9px;padding:7px 12px;font-weight:600}
+button.p{background:var(--accent);color:#042a1b;border-color:var(--accent)}
+.meta{width:100%;font-size:11.5px;color:var(--faint);display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.src{font-size:10.5px;padding:2px 7px;border-radius:20px;border:1px solid var(--line);color:var(--muted);display:inline-flex;gap:5px;align-items:center}
+.src i{width:6px;height:6px;border-radius:50%;background:var(--faint)}
+.src.ok i{background:var(--accent)}.src.bad i{background:var(--danger)}
+.wrap{max-width:1240px;margin:0 auto;padding:16px 18px 50px}
+.bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+.search{flex:1;min-width:180px;display:flex;gap:8px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 11px}
+.search input{border:none;background:none;color:var(--fg);width:100%;outline:none;font-size:14px}
+.toggle{font-size:12.5px;color:var(--muted);display:inline-flex;gap:6px;align-items:center}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.chip{font-size:12px;font-weight:600;padding:5px 10px;border-radius:20px;border:1px solid var(--line);background:var(--surface);color:var(--muted)}
+.chip[aria-pressed=true]{background:var(--accentw);border-color:var(--accent);color:var(--accentfg)}
+.count{font-size:12.5px;color:var(--faint);margin-bottom:12px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:12px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.card.new{border-color:var(--new)}
+.top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.card h3{font:600 15px/1.3 Inter;margin:0}.card h3 a{color:var(--fg)}
+.bnew{font-size:9.5px;font-weight:700;letter-spacing:.06em;color:var(--new);background:var(--neww);padding:2px 6px;border-radius:5px;text-transform:uppercase;white-space:nowrap}
+.dom{align-self:flex-start;font-size:11px;font-weight:700;color:var(--accentfg);background:var(--accentw);padding:3px 8px;border-radius:6px}
+.co{font-size:12.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.desc{font-size:12.5px;color:var(--muted);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.facts{display:flex;gap:10px;flex-wrap:wrap;font-size:11.5px;color:var(--faint);margin-top:auto}
+.facts b{color:var(--accent)}
+.tags{display:flex;gap:5px;flex-wrap:wrap}.tg{font-size:10.5px;color:var(--faint);background:var(--s2);padding:2px 7px;border-radius:5px}
+.apply{text-align:center;background:var(--accent);color:#042a1b;font-weight:700;font-size:12.5px;padding:7px;border-radius:8px}
+.empty{color:var(--faint);text-align:center;padding:50px}
+</style>
+</head>
+<body>
+<header>
+  <div><h1>Gig Radar <span style="color:var(--accent)">·local</span></h1><div class="sub">Auth feeds + email/SMS alerts</div></div>
+  <div class="sp"></div>
+  <button class="p" id="refresh">↻ Refresh now</button>
+  <div class="meta" id="meta">Loading…</div>
+</header>
+<div class="wrap">
+  <div class="bar">
+    <label class="search"><span>🔍</span><input id="q" type="search" placeholder="Search title, company, skill…"></label>
+    <label class="toggle"><input type="checkbox" id="newOnly"> New only</label>
+  </div>
+  <div class="chips" id="chips"></div>
+  <div class="count" id="count"></div>
+  <div class="grid" id="grid"></div>
+  <div class="empty" id="empty" hidden>No gigs match.</div>
+</div>
+<script>
+const $=s=>document.querySelector(s);
+const LABELS={ai:'AI / Chatbot',write:'Writing',code:'Coding',data:'Data / Research',seo:'SEO',deck:'Slides',trans:'Translation',sheet:'Spreadsheet',market:'Marketing',admin:'Resume / Admin',other:'Other'};
+let ALL=[]; const f={q:'',dom:new Set(),newOnly:false};
+function ago(ms){if(!ms)return'';const d=Date.now()-ms,h=36e5,day=864e5;if(d<h)return Math.max(1,Math.round(d/6e4))+'m ago';if(d<day)return Math.round(d/h)+'h ago';return Math.round(d/day)+'d ago';}
+function el(t,c,x){const e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e;}
+async function load(){
+  try{
+    const [jobs,src]=await Promise.all([fetch('/api/jobs').then(r=>r.json()),fetch('/api/sources').then(r=>r.json())]);
+    ALL=jobs; renderMeta(src); chips(); render();
+  }catch(e){ $('#meta').textContent='Backend not reachable — is server.py running?'; }
+}
+function renderMeta(src){
+  const m=$('#meta'); m.innerHTML='';
+  const n=ALL.filter(j=>j.isNew).length;
+  m.append(ALL.length+' gigs · '+n+' new · email '+(src.email?'on':'off')+' · sms '+(src.sms?'on':'off')+'  ');
+  Object.entries(src.status||{}).forEach(([k,v])=>{
+    const c=el('span','src '+(v.state==='ok'?'ok':v.state==='bad'?'bad':''));
+    c.append(el('i'),el('span',null,k+(v.n!=null&&v.state==='ok'?' '+v.n:v.state==='bad'?' ×':'')));
+    if(v.err)c.title=v.err; m.appendChild(c);
+  });
+  document.title=(n?'('+n+') ':'')+'Gig Radar (local)';
+}
+function chips(){
+  const cc={}; ALL.forEach(j=>cc[j.dom]=(cc[j.dom]||0)+1);
+  const el2=$('#chips'); el2.innerHTML='';
+  Object.keys(LABELS).forEach(k=>{ if(!cc[k])return;
+    const b=el('button','chip'); b.setAttribute('aria-pressed',f.dom.has(k)); b.textContent=LABELS[k]+' '+cc[k];
+    b.onclick=()=>{f.dom.has(k)?f.dom.delete(k):f.dom.add(k);b.setAttribute('aria-pressed',f.dom.has(k));render();};
+    el2.appendChild(b); });
+}
+function match(j){
+  if(f.newOnly&&!j.isNew)return false;
+  if(f.dom.size&&!f.dom.has(j.dom))return false;
+  if(f.q){const h=(j.title+' '+j.company+' '+(j.tags||[]).join(' ')+' '+j.desc).toLowerCase();if(!h.includes(f.q))return false;}
+  return true;
+}
+function render(){
+  const g=$('#grid'); g.innerHTML=''; const list=ALL.filter(match);
+  $('#count').textContent=list.length+' gigs · newest first';
+  $('#empty').hidden=list.length>0;
+  const fr=document.createDocumentFragment();
+  list.slice(0,300).forEach(j=>{
+    const c=el('div','card'+(j.isNew?' new':''));
+    const top=el('div','top'); const h=el('h3'); const a=el('a',null,j.title); a.href=j.url; a.target='_blank'; a.rel='noopener'; h.appendChild(a); top.appendChild(h);
+    if(j.isNew)top.appendChild(el('span','bnew','New')); c.appendChild(top);
+    c.appendChild(el('span','dom','◆ '+(LABELS[j.dom]||'Other')));
+    c.appendChild(el('div','co',(j.company||'—')+(j.loc?(' · '+j.loc):'')));
+    if(j.desc)c.appendChild(el('div','desc',j.desc));
+    if(j.tags&&j.tags.length){const tg=el('div','tags');j.tags.slice(0,5).forEach(t=>tg.appendChild(el('span','tg',String(t).slice(0,22))));c.appendChild(tg);}
+    const fa=el('div','facts');
+    if(j.salary){const s=el('span');s.append('💰 ');s.appendChild(el('b',null,j.salary));fa.appendChild(s);}
+    fa.appendChild(el('span',null,'⏱ '+(ago(j.date)||'recent')));
+    fa.appendChild(el('span',null,'via '+j.src)); c.appendChild(fa);
+    const ap=el('a','apply','Apply / view →'); ap.href=j.url; ap.target='_blank'; ap.rel='noopener'; c.appendChild(ap);
+    fr.appendChild(c);
+  });
+  g.appendChild(fr);
+}
+$('#q').addEventListener('input',e=>{f.q=e.target.value.trim().toLowerCase();render();});
+$('#newOnly').addEventListener('change',e=>{f.newOnly=e.target.checked;render();});
+$('#refresh').addEventListener('click',async()=>{const b=$('#refresh');b.disabled=true;b.textContent='↻ …';try{await fetch('/api/refresh',{method:'POST'});}catch(e){}await load();b.disabled=false;b.textContent='↻ Refresh now';});
+load(); setInterval(load,60000);
+</script>
+</body>
+</html>
