@@ -61,6 +61,18 @@ button.p{background:var(--accent);color:#042a1b;border-color:var(--accent)}
 .req.ok{background:var(--accentw);color:var(--accentfg);border-color:transparent}
 .req.bad{background:var(--neww);color:var(--new);border-color:transparent}
 .req.stop{color:var(--danger);border-color:var(--danger);background:transparent}
+.dcard{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:7px;margin-bottom:12px}
+.dcard .dh{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
+.dcard .dh h3{font:600 14.5px Inter;margin:0}
+.dcard .pay{font-size:12px;font-weight:700;color:var(--accent)}
+.dcard dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:3px 10px;font-size:12.5px}
+.dcard dt{color:var(--faint);font-weight:600;white-space:nowrap}
+.dcard dd{margin:0;color:var(--muted)}
+.dcard .qc{font-size:12px;background:var(--accentw);color:var(--accentfg);padding:7px 9px;border-radius:7px}
+.warn{background:var(--surface);border:1px solid var(--danger);border-radius:12px;padding:14px;margin-top:8px}
+.warn h3{color:var(--danger);font:600 14px Inter;margin:0 0 8px}
+.warn ul{margin:0;padding-left:18px;font-size:12.5px;color:var(--muted);display:flex;flex-direction:column;gap:5px}
+.pbh{font:600 16px 'Space Grotesk',Inter;margin:12px 0 6px}
 </style>
 </head>
 <body>
@@ -73,6 +85,7 @@ button.p{background:var(--accent);color:#042a1b;border-color:var(--accent)}
 <div class="tabs">
   <button class="tab" id="tf" aria-selected="true">Live feed</button>
   <button class="tab" id="tp" aria-selected="false">Platforms</button>
+  <button class="tab" id="tb" aria-selected="false">Claude playbook</button>
 </div>
 <div class="wrap" id="feedView">
   <div class="bar">
@@ -92,6 +105,24 @@ button.p{background:var(--accent);color:#042a1b;border-color:var(--accent)}
   </div>
   <div class="legend" id="plLegend"></div>
   <div id="plCats"></div>
+</div>
+<div class="wrap" id="pbView" hidden>
+  <div class="lead"><b>The one rule:</b> sell edited, quality-checked deliverables — never raw AI output. Buyers pay for speed, judgment, and that you caught the slop. Cold outreach + Reddit pay <i>this week</i>; marketplaces compound over weeks.</div>
+  <div class="lead" style="border-left-color:var(--info)"><b>No portfolio?</b> Make 2–3 polished samples for real brands (rewrite a known product page, build a demo support bot, a 5-email flow). Host free on Contra/Notion. Do first 1–3 jobs cheap on r/forhire to bank reviews, then raise prices. Niche down ("SEO posts for SaaS") = instant authority. Offer "free revisions / refund if not usable".</div>
+  <h2 class="pbh">Domains &amp; how to deliver each with Claude</h2>
+  <div id="pbCards"></div>
+  <div class="warn">
+    <h3>⚠ Scams &amp; red flags — walk away</h3>
+    <ul>
+      <li><b>Overpayment / fake check:</b> client "overpays", asks you to refund the difference — the original bounces. Never refund to a different account.</li>
+      <li><b>Pay-to-start / training fee / buy equipment:</b> any job needing YOU to pay upfront is a scam.</li>
+      <li><b>Off-platform payment lure:</b> "move to Telegram/WhatsApp, I'll pay by gift card/crypto" — removes dispute protection.</li>
+      <li><b>"Free test task" that is the real job:</b> cap free samples at ~150 words / 15 min.</li>
+      <li><b>Credential harvesting:</b> asks for SSN / bank login / ID photos before any contract.</li>
+      <li><b>Direct-client chargebacks:</b> take 50% deposit + milestones; never deliver 100% before payment.</li>
+      <li><b>AI-resale bans:</b> ALL data-annotation platforms ban using AI on tasks; some Fiverr categories too.</li>
+    </ul>
+  </div>
 </div>
 <script>
 const $=s=>document.querySelector(s);
@@ -210,9 +241,32 @@ function renderPlatforms(){renderLegend();const wrap=$('#plCats');wrap.innerHTML
    c.appendChild(el('div','pay','💵 '+p.p));g.appendChild(c);});
   sec.appendChild(g);wrap.appendChild(sec);});
  if(!wrap.childElementCount)wrap.appendChild(el('div','empty','No platforms match.'));}
-function selTab(which){const feed=which==='feed';$('#tf').setAttribute('aria-selected',feed);$('#tp').setAttribute('aria-selected',!feed);$('#feedView').hidden=!feed;$('#plView').hidden=feed;if(!feed)renderPlatforms();window.scrollTo(0,0);}
+/* ---- Claude playbook ---- */
+const PLAYBOOK=[
+ {t:'AI / Chatbot / Automation',pay:'$150–600 bot · $100–400 automation · $200–800/mo retainer',where:'Cold-DM local service businesses (dentists, realtors, agencies) — almost none pitched this. r/forhire, Upwork, Make/n8n forums.',flow:'Client docs → Claude Project/custom GPT with system prompt + knowledge files → wire into Make/n8n.',qc:'QC: run 15–20 real questions, confirm it refuses out-of-scope and never invents policy. Ship a 1-page usage doc.'},
+ {t:'Writing / Content',pay:'$15–40 blog · $25–75 per 20 descriptions · $150–400/mo retainer',where:'r/forhire, r/HireaWriter, Fiverr, Contra, ProBlogger, cold-email local biz.',flow:'Outline from keyword + 3 competitor URLs → draft in client voice.',qc:'QC: strip AI tells (delve/tapestry/"it’s important to note"), add one concrete stat, read aloud. Never ship first draft.'},
+ {t:'Coding / Dev / MVPs',pay:'$25–150 script · $75–300 landing page · $300–1500 MVP · $20–50/hr',where:'r/forhire, Upwork, Contra, Fiverr, Indie Hackers, dev Discords, Codementor.',flow:'Spec → generate with Claude Code → run it.',qc:'QC: run it, write one test, handle an obvious error case on real input. Screen-record it working as proof.'},
+ {t:'Data / Research',pay:'$30–150 report · $40–120 per 100 leads · $25–100 data cleaning',where:'Upwork, r/forhire, Contra, LinkedIn DMs to founders/agencies.',flow:'Feed sources → Claude structures/dedupes into tables → deliver clean .xlsx/Sheet.',qc:'QC: manually verify 5–10 rows/facts against the source (Claude hallucinates specifics), cite every point.'},
+ {t:'SEO / Programmatic',pay:'$2–8/page bulk · $100–500/batch · $40–120 calendar',where:'Cold-email SEO agencies (they outsource this), r/bigseo, r/juststart.',flow:'One approved template + CSV of variables → generate variations.',qc:'QC: thin-content/dedupe check, verify no [CITY] placeholder leaks.'},
+ {t:'Slides / Decks',pay:'$40–150 copy+structure · $150–400 with design',where:'r/forhire, Upwork, Fiverr, cold-pitch startups/coaches/consultants.',flow:'Raw content → slide-by-slide narrative + concise copy → Gamma/Canva for design.',qc:'QC: one idea per slide, cut word count 50%, confirm the story arc.'},
+ {t:'Translation / Localization',pay:'$0.03–0.08/word or $20–60/page',where:'r/forhire, Upwork, Fiverr, ProZ, localization agencies.',flow:'Claude first-pass + glossary consistency.',qc:'QC: ship ONLY language pairs you can personally proofread — unverified MT = refunds and bans.'},
+ {t:'Spreadsheet / Excel',pay:'$10–40 formula · $50–200 dashboard · $75–300 Apps Script',where:'r/excel (DM for paid), r/forhire, Fiverr, cold-pitch small biz/bookkeepers.',flow:'Structure + outcome → formula/script.',qc:'QC: test on the client’s real data, handle blanks/errors/large ranges, add a notes tab.'},
+ {t:'Email / Ads / Marketing',pay:'$50–200 email sequence · $30–150 ad set · $150–500/mo retainer',where:'Cold-pitch Shopify/e-com + coaches/newsletter operators, r/forhire, Upwork, agencies.',flow:'Offer + audience + proof → draft with hooks/CTAs.',qc:'QC: one CTA per email, cut fluff, match voice, no fake claims or urgency.'},
+ {t:'Resume / Docs / Admin',pay:'$15–40 resume · $40–90 bundle · $50–300 SOP/grant',where:'r/forhire, r/resumes (DM for paid), Fiverr (niche it), job-seeker FB groups.',flow:'Old doc + target job posting → tailor to keywords with quantified wins.',qc:'QC: strip clichés, verify every claim, ATS-safe formatting (no tables/columns that break parsers).'},
+ {t:'Misc — try with Claude',pay:'Varies — most text or computer-based work is doable',where:'Don’t skip these: skim each one, most remote tasks can be done with Claude.',flow:'Break the task into steps, draft each with Claude, finish and check by hand.',qc:'QC: always test/verify the deliverable before sending.'}
+];
+function renderPlaybook(){const w=$('#pbCards');if(w.childElementCount)return;const fr=document.createDocumentFragment();
+ PLAYBOOK.forEach(d=>{const c=el('div','dcard');const dh=el('div','dh');dh.appendChild(el('h3',null,d.t));dh.appendChild(el('span','pay',d.pay));c.appendChild(dh);
+  const dl=document.createElement('dl');dl.appendChild(el('dt',null,'Land it'));dl.appendChild(el('dd',null,d.where));dl.appendChild(el('dt',null,'Workflow'));dl.appendChild(el('dd',null,d.flow));c.appendChild(dl);
+  c.appendChild(el('div','qc',d.qc));fr.appendChild(c);});
+ w.appendChild(fr);}
+function selTab(which){
+ ['feed','platforms','play'].forEach(t=>({feed:'#tf',platforms:'#tp',play:'#tb'})[t]&&$(({feed:'#tf',platforms:'#tp',play:'#tb'})[t]).setAttribute('aria-selected',t===which));
+ $('#feedView').hidden=which!=='feed';$('#plView').hidden=which!=='platforms';$('#pbView').hidden=which!=='play';
+ if(which==='platforms')renderPlatforms();if(which==='play')renderPlaybook();window.scrollTo(0,0);}
 $('#tf').addEventListener('click',()=>selTab('feed'));
 $('#tp').addEventListener('click',()=>selTab('platforms'));
+$('#tb').addEventListener('click',()=>selTab('play'));
 $('#plq').addEventListener('input',e=>{pf.q=e.target.value.trim().toLowerCase();renderPlatforms();});
 $('#plIndia').addEventListener('change',e=>{pf.hideNonIndia=e.target.checked;renderPlatforms();});
 $('#q').addEventListener('input',e=>{f.q=e.target.value.trim().toLowerCase();render();});
