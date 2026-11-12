@@ -1,0 +1,16 @@
+[Unit]
+Description=Gig Radar job-alert backend
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=hakuza
+WorkingDirectory=/home/hakuza/gig-radar
+ExecStart=/home/hakuza/gig-radar/venv/bin/python server.py
+Restart=always
+RestartSec=10
+# load .env is handled inside config.py; keep secrets out of this unit
+
+[Install]
+WantedBy=multi-user.target

@@ -79,3 +79,33 @@ Or run one poll from cron without the web server:
   it does not scrape behind logins with your password.
 - Alert pay figures and listings are third-party — verify on the source before
   applying or paying. Never pay a "training fee".
+
+## Run 24/7 on boot (systemd, WSL2)
+
+systemd is already enabled here. Install the service once (needs sudo password):
+
+```bash
+sudo bash ~/gig-radar/install-service.sh
+```
+
+Then it starts automatically whenever the WSL distro boots and restarts on crash.
+
+Manage it:
+```bash
+systemctl status gig-radar      # health
+journalctl -u gig-radar -f      # live logs
+sudo systemctl restart gig-radar
+sudo systemctl disable --now gig-radar   # turn off
+```
+
+### Make WSL itself start at Windows login (optional)
+A WSL systemd service only runs while the distro is running, and WSL starts when
+you first open it. To have it come up at Windows logon, add a Task Scheduler task
+(run in Windows PowerShell, not WSL):
+
+```powershell
+schtasks /create /tn "WSL Gig Radar" /tr "wsl.exe -d Ubuntu -e true" /sc onlogon /rl highest
+```
+
+Replace `Ubuntu` with your distro name from `wsl -l -q`. The `-e true` just boots
+the distro; systemd then starts gig-radar.
