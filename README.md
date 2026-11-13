@@ -80,6 +80,38 @@ Or run one poll from cron without the web server:
 - Alert pay figures and listings are third-party — verify on the source before
   applying or paying. Never pay a "training fee".
 
+## Security
+
+This has been reviewed for the risks that matter for a credential-holding
+local service:
+- **No committed secrets.** `.env` (and the DB/logs/venv) are git-ignored and
+  were never tracked; only `.env.example` with empty placeholder values is in
+  the repo. There is no real token, password, or phone number anywhere in the
+  current tree or git history.
+- **No SSRF surface.** Every outbound request target in `sources.py` is a
+  hardcoded API/feed URL baked into the source — the app never fetches a URL
+  supplied by a user, job listing, or request parameter, so there's nothing
+  to allowlist.
+- **No stored/DOM XSS.** Third-party job titles/descriptions/tags are
+  untrusted by design (see `sources.py` docstring) and the dashboard
+  (`dashboard.html`) only ever writes them via `el()`/`textContent`, never
+  `innerHTML`, so a malicious listing can't inject script into the page.
+  Links are set via the `href` property, not interpolated into markup.
+- **Local-only web surface.** `server.py` binds Flask to `127.0.0.1` only; the
+  dashboard and its `/api/*` routes (including the no-auth `POST
+  /api/refresh`) are never reachable from the network, so the lack of
+  auth/CSRF tokens on them is intentional, not an oversight.
+- **Templating is plain text.** Email/SMS bodies (`notify.py`) are built with
+  `%`-formatting into a `MIMEText` plaintext message and a size-capped SMS
+  body — no HTML/template-injection surface in the alert path.
+- **RSS parsing.** `sources.py` parses the We Work Remotely feed with
+  `xml.etree.ElementTree`, which does not resolve external entities, so it
+  isn't exposed to classic XXE.
+
+Residual, accepted risk: Reddit/Freelancer/Upwork calls send your token or
+app credentials over HTTPS to each platform's own API — that's inherent to
+"authenticated feeds," not a bug, and is why those three are opt-in.
+
 ## Run 24/7 on boot (systemd, WSL2)
 
 systemd is already enabled here. Install the service once (needs sudo password):
