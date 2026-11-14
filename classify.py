@@ -33,12 +33,20 @@ DOMAINS = [
     ("other", "Misc - try with Claude", []),
 ]
 
+import re
+
+# Keywords match at a word START (so "developers"/"apis" still hit) but never
+# mid-word: bare substring matching tagged "capital" as code (api), "storage"
+# as AI (rag), "loads" as marketing (ads), "discover" as admin (cv)...
+_DOMAIN_RES = [
+    (key, re.compile(r"(?<![a-z0-9])(?:" + "|".join(re.escape(w) for w in kws) + r")"))
+    for key, _label, kws in DOMAINS if key != "other"
+]
+
 def classify(title, tags, desc):
     hay = (str(title) + " " + " ".join(tags or []) + " " + str(desc or "")).lower()
-    for key, _label, kws in DOMAINS:
-        if key == "other":
-            continue
-        if any(w in hay for w in kws):
+    for key, rx in _DOMAIN_RES:
+        if rx.search(hay):
             return key
     return "other"
 

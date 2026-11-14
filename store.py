@@ -1,5 +1,6 @@
 """SQLite persistence: jobs + source fetch timestamps."""
 import os
+import re
 import json
 import sqlite3
 import threading
@@ -20,6 +21,22 @@ def init():
             tags TEXT, salary TEXT, loc TEXT, descr TEXT, src TEXT, domain TEXT,
             first_seen INTEGER)""")
         c.execute("CREATE TABLE IF NOT EXISTS meta(key TEXT PRIMARY KEY, val TEXT)")
+        # Cross-feed duplicate detection: the same gig is often posted on
+        # several feeds under different ids.
+        c.execute("CREATE TABLE IF NOT EXISTS seen_keys(key TEXT PRIMARY KEY)")
+        for r in c.execute("SELECT title, company FROM jobs").fetchall():
+            k = content_key(r["title"], r["company"])
+            if k:
+                c.execute("INSERT OR IGNORE INTO seen_keys(key) VALUES(?)", (k,))
+
+_NON_ALNUM = re.compile(r"[^a-z0-9]+")
+_NOISE = re.compile(r"\b(remote|worldwide|freelance|contract|full[- ]?time|part[- ]?time|m/f/d|f/m/d)\b")
+
+def content_key(title, company):
+    """Normalised (company, title) identity used to collapse cross-posted gigs."""
+    t = _NON_ALNUM.sub(" ", _NOISE.sub(" ", str(title or "").lower())).strip()
+    c = _NON_ALNUM.sub(" ", str(company or "").lower()).strip()
+    return (c + "|" + t) if (t and c) else ""
 
 def get_meta(key, default=None):
     with _lock, _conn() as c:
@@ -55,6 +72,11 @@ def upsert_jobs(jobs):
             exists = c.execute("SELECT 1 FROM jobs WHERE id=?", (j["id"],)).fetchone()
             if exists:
                 continue
+            key = content_key(j.get("title"), j.get("company"))
+            if key:
+                if c.execute("SELECT 1 FROM seen_keys WHERE key=?", (key,)).fetchone():
+                    continue  # same gig already stored/alerted via another feed
+                c.execute("INSERT INTO seen_keys(key) VALUES(?)", (key,))
             c.execute("""INSERT INTO jobs
                 (id,title,company,url,date,tags,salary,loc,descr,src,domain,first_seen)
                 VALUES(?,?,?,?,?,?,?,?,?,?,?,?)""",
