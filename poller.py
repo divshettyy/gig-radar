@@ -41,7 +41,11 @@ def poll_cycle(force=False):
 
     first_run = not store.seeded()
     if first_run:
-        store.mark_seeded()
+        # Only seed once at least one source actually answered. Otherwise a
+        # first run with every source down would mark the DB seeded with zero
+        # jobs, and the next successful poll would alert on the whole backlog.
+        if any(st.get("state") == "ok" and st.get("at") == int(now) for st in STATUS.values()):
+            store.mark_seeded()
         print("[poll] first run: seeded %d jobs, no alerts this pass" % len(fresh))
         return []
 

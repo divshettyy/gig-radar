@@ -42,7 +42,10 @@ def loop():
             poll_cycle(force=False)
         except Exception as e:
             print("[loop] error:", e)
-        time.sleep(max(300, config.POLL_INTERVAL))
+        # Wake often: per-source TTLs (poller/sources.py) already throttle the
+        # actual fetches, so a short tick costs nothing but cuts alert latency
+        # for the 15-minute authenticated sources.
+        time.sleep(max(60, min(300, config.POLL_INTERVAL)))
 
 if __name__ == "__main__":
     store.init()
