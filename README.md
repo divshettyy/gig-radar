@@ -170,7 +170,7 @@ Replace `Ubuntu` with your distro name from `wsl -l -q`.
 
 ## Roadmap
 
-- [x] Test coverage for sources, store, poller, notify, digest and the local API (116 tests)
+- [x] Test coverage for sources, store, poller, notify, digest and the local API (122 tests)
 - [ ] Pluggable notification channels (Slack/Discord webhook, Pushover)
 - [ ] Per-domain alert filtering (only notify for selected categories)
 - [ ] Dockerfile for one-command deploy off WSL/systemd

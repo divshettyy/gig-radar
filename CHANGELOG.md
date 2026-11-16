@@ -2,7 +2,7 @@
 
 ## 2026-11-15: tests, CI, and the faults the tests found
 
-Tests went from 12 to 116 (`./venv/bin/python -m pytest -q`). They cover the onsite/physical
+Tests went from 12 to 122 (6 of them from the 14 November nightly change, merged here) (`./venv/bin/python -m pytest -q`). They cover the onsite/physical
 filter, domain classification, every feed parser against a canned reply, storage and
 de-duplication, which gigs raise an alert, the email and SMS text and switches, the Markdown
 digest, and the local API. Nothing in the suite reaches the network, the mail server, the SMS
@@ -32,10 +32,17 @@ Added
 - `requirements-dev.txt` (pytest), GitHub Actions workflow running the suite on Python 3.11 and 3.13.
 
 Known limits, not fixed
+- Cross-feed duplicate detection is permanent: a company that posts the same title again months
+  later is treated as already seen.
 - The filter still drops a few remote tech gigs that use a physical-role word: "Chef" (the
   DevOps tool), "game mechanics", "Courier" (the font), "Nurse Educator" content work.
 - Untested: `dashboard.html` (browser code), `run.sh`, `install-service.sh`, the background loop
   in `server.py`, and the live feeds themselves (a feed changing its format is only seen at run time).
+
+## 2026-11-14
+- Domain keywords match at a word start ("capital" is no longer coding because of "api").
+- The same gig posted on several feeds under different ids is stored and alerted once (same company and title).
+- Background loop wakes every 1-5 minutes; per-feed limits still decide what is fetched.
 
 ## 2026-11-13
 - MIT license, digests and database ignored by git, README polish, Security section from the audit.
