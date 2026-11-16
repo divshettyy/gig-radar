@@ -34,6 +34,20 @@ def collect():
     uniq.sort(key=lambda j: j.get("date") or 0, reverse=True)
     return uniq, status
 
+def _text(s):
+    """Feed text is untrusted. One line, and no characters that can close a
+    Markdown link or start a heading or list item."""
+    s = " ".join(str(s or "").split())
+    for ch in "[]()<>`|":
+        s = s.replace(ch, " ")
+    return " ".join(s.split()).lstrip("#-*+> ")
+
+def _link(u):
+    u = str(u or "").strip()
+    if not u.lower().startswith(("http://", "https://")) or any(c in u for c in " \t\r\n<>"):
+        return ""
+    return u.replace("(", "%28").replace(")", "%29")
+
 def to_md(jobs, status):
     today = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d")
     out = ["# Gig Radar digest - %s (UTC)" % today, ""]
@@ -45,10 +59,12 @@ def to_md(jobs, status):
     for dom, items in sorted(by_dom.items(), key=lambda kv: -len(kv[1])):
         out.append("## %s (%d)" % (LABELS.get(dom, dom), len(items)))
         for j in items:
-            bits = [b for b in [j.get("company"), j.get("salary"), j.get("src")] if b]
+            bits = [b for b in [_text(j.get("company")), _text(j.get("salary")),
+                                _text(j.get("src"))] if b]
             meta = " - ".join(bits)
-            out.append("- [%s](%s)%s" % (j.get("title", "").strip(),
-                                         j.get("url", ""), (" - " + meta) if meta else ""))
+            title, url = _text(j.get("title")) or "untitled", _link(j.get("url"))
+            out.append("- %s%s" % ("[%s](%s)" % (title, url) if url else title,
+                                   (" - " + meta) if meta else ""))
         out.append("")
     srcline = ", ".join("%s: %s" % (k, v) for k, v in status.items())
     out.append("---\n_sources: %s_" % srcline)

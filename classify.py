@@ -1,4 +1,5 @@
 """Map a job to a Claude-doable domain by keyword. Mirrors the dashboard."""
+import re
 
 DOMAINS = [
     ("ai", "AI / Chatbot / Automation",
@@ -68,11 +69,20 @@ PHYSICAL = [
     "courier", "field technician", "field service", "equipment installer",
 ]
 
+# Match at a word start only, with an optional plural, so "cna" does not fire on
+# "CNAME" or "waiter" on "awaiter". Entries in _STEMS are prefixes on purpose
+# ("housekeep" covers housekeeper and housekeeping).
+_STEMS = {"housekeep", "landscap", "phlebotom", "veterinar"}
+_PHYSICAL_RE = re.compile(
+    r"\b(?:" + "|".join(
+        re.escape(p) + ("" if p in _STEMS else r"(?:s|es)?\b")
+        for p in sorted(set(PHYSICAL) | _STEMS, key=len, reverse=True)) + ")")
+
 def keep(title, tags, desc, loc, src):
     """True if the gig is remote AND plausibly doable with an AI agent."""
     t = (str(title) + " " + " ".join(tags or []) + " " + str(desc or "") + " "
          + str(loc or "")).lower()
-    if any(p in t for p in PHYSICAL):
+    if _PHYSICAL_RE.search(t):
         return False
     locl = str(loc or "").lower()
     # Arbeitnow mixes onsite EU roles: loc is "Remote" when remote, else a city.

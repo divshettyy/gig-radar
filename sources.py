@@ -76,19 +76,34 @@ def src_arbeitnow():
             "company": j.get("company_name", ""), "url": j.get("url", ""),
             "date": int((j.get("created_at") or 0) * 1000),
             "tags": ((j.get("tags") or []) + (j.get("job_types") or []))[:6], "salary": None,
-            "loc": j.get("location") or ("Remote" if j.get("remote") else ""),
+            "loc": _arb_loc(j),
             "desc": strip_html(j.get("description")), "src": "Arbeitnow"})
     return out
+
+def _arb_loc(j):
+    """Arbeitnow gives a city even for remote jobs and a separate remote flag.
+    The flag has to be in the location text, or keep() drops the job as onsite."""
+    loc = j.get("location") or ""
+    if j.get("remote") and "remote" not in loc.lower():
+        return "Remote (%s)" % loc if loc else "Remote"
+    return loc
+
+def _num(v):
+    try:
+        return float(v)
+    except (TypeError, ValueError):
+        return 0
 
 def src_jobicy():
     data = _get("https://jobicy.com/api/v2/remote-jobs?count=60").json()
     out = []
     for j in data.get("jobs", []):
         salary = None
-        if j.get("salaryMin"):
+        smin = _num(j.get("salaryMin"))      # the feed sends numbers or numeric strings
+        if smin > 0:
             cur = j.get("salaryCurrency") or "$"
-            salary = "%s%dk-%dk" % (cur, round(j["salaryMin"] / 1000),
-                                    round((j.get("salaryMax") or j["salaryMin"]) / 1000))
+            salary = "%s%dk-%dk" % (cur, round(smin / 1000),
+                                    round((_num(j.get("salaryMax")) or smin) / 1000))
         industry = j.get("jobIndustry") or []
         jtype = j.get("jobType") or []
         if isinstance(industry, str):
@@ -240,6 +255,8 @@ def src_upwork():
         n = e.get("node") or {}
         amt = n.get("amount") or {}
         cipher = n.get("ciphertext") or ""
+        if not cipher:
+            continue        # no id: every such posting would share the id "upw"
         out.append({
             "id": "upw" + cipher, "title": n.get("title", ""), "company": "",
             "url": "https://www.upwork.com/jobs/" + cipher,
@@ -260,7 +277,10 @@ def _iso_ms(s):
     try:
         s = s.replace("Z", "+00:00")
         import datetime
-        return int(datetime.datetime.fromisoformat(s).timestamp() * 1000)
+        d = datetime.datetime.fromisoformat(s)
+        if d.tzinfo is None:        # no zone given: UTC, not this machine's zone
+            d = d.replace(tzinfo=datetime.timezone.utc)
+        return int(d.timestamp() * 1000)
     except Exception:
         return 0
 

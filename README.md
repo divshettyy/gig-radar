@@ -170,7 +170,7 @@ Replace `Ubuntu` with your distro name from `wsl -l -q`.
 
 ## Roadmap
 
-- [ ] Expand test coverage beyond `tests/test_classify.py` (sources, store, poller)
+- [x] Test coverage for sources, store, poller, notify, digest and the local API (116 tests)
 - [ ] Pluggable notification channels (Slack/Discord webhook, Pushover)
 - [ ] Per-domain alert filtering (only notify for selected categories)
 - [ ] Dockerfile for one-command deploy off WSL/systemd
@@ -178,7 +178,8 @@ Replace `Ubuntu` with your distro name from `wsl -l -q`.
 
 ## Known limitations
 
-- Test coverage is limited to classification logic (`tests/test_classify.py`); sources/store/poller/notify are untested.
+- Tests (`pip install -r requirements-dev.txt && python -m pytest -q`) use canned feed replies and fake mail/SMS; the browser code in `dashboard.html`, the shell scripts and the live feeds are untested.
+- The onsite/physical filter still drops a few remote tech gigs that use a physical-role word ("Chef" the DevOps tool, "game mechanics").
 - Network errors from a single source are caught and logged but not retried within the same cycle.
 - SQLite file (`gigradar.db`) is local-only and not backed up; deleting it just re-seeds from the feeds.
 - `.env` must be created manually from `.env.example`; there is no setup wizard.

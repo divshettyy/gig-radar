@@ -8,7 +8,7 @@ import config
 def _digest(jobs, limit=15):
     lines = []
     for j in jobs[:limit]:
-        bits = [j.get("title", "")]
+        bits = [str(j.get("title") or "")]
         if j.get("company"):
             bits.append(j["company"])
         bits.append(j.get("src", ""))
@@ -40,7 +40,7 @@ def send_sms(jobs):
         return False
     top = jobs[0]
     body = "Gig Radar: %d new gig(s). Top: %s%s" % (
-        len(jobs), top.get("title", "")[:80],
+        len(jobs), str(top.get("title") or "")[:80],
         (" @ " + top["company"]) if top.get("company") else "")
     try:
         r = requests.post(

@@ -12,6 +12,8 @@ def poll_cycle(force=False):
     store.init()
     now = time.time()
     collected = []
+    succeeded = 0
+    backlog = set()   # sources fetched for the first time: their jobs are old, not news
     for name, fn, ttl in SOURCES:
         if not force and (now - store.last_fetch(name)) < ttl:
             STATUS.setdefault(name, {})["state"] = STATUS.get(name, {}).get("state", "cached")
@@ -22,7 +24,12 @@ def poll_cycle(force=False):
                     if keep(j.get("title"), j.get("tags"), j.get("desc"), j.get("loc"), name)]
             for j in jobs:
                 j["domain"] = classify(j.get("title"), j.get("tags"), j.get("desc"))
+            if not store.last_fetch(name):
+                backlog.add(name)
+            for j in jobs:
+                j["_feed"] = name
             collected.extend(jobs)
+            succeeded += 1
             store.mark_fetch(name)
             STATUS[name] = {"state": "ok", "n": len(jobs), "at": int(now), "err": ""}
         except Exception as e:
@@ -38,11 +45,18 @@ def poll_cycle(force=False):
             uniq.append(j)
 
     fresh = store.upsert_jobs(uniq)
+    stored = len(fresh)
+    # A feed's first successful fetch is its whole back catalogue. Alerting on it
+    # would send dozens of old gigs when a feed that was down comes back.
+    fresh = [j for j in fresh if j.pop("_feed", None) not in backlog]
+    for j in uniq:
+        j.pop("_feed", None)
 
     first_run = not store.seeded()
     if first_run:
-        store.mark_seeded()
-        print("[poll] first run: seeded %d jobs, no alerts this pass" % len(fresh))
+        if succeeded:   # with every feed down nothing is seeded yet; try again next cycle
+            store.mark_seeded()
+        print("[poll] first run: seeded %d jobs, no alerts this pass" % stored)
         return []
 
     if fresh:
