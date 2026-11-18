@@ -33,3 +33,19 @@ class Dedupe(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def test_title_outweighs_description_keywords():
+    # "workflow"/"automation" in the body must not beat a clear writing title
+    d = "We use a workflow automation stack internally. Apply today."
+    assert classify.classify("Senior Copywriter", [], d) == "write"
+
+def test_tags_outweigh_description():
+    assert classify.classify("Freelancer wanted", ["react", "typescript"],
+                             "email newsletter workflow") == "code"
+
+def test_more_title_hits_win_over_earlier_domain():
+    assert classify.classify("Excel spreadsheet and pivot expert", [], "") == "sheet"
+
+def test_none_inputs_are_safe():
+    assert classify.classify(None, None, None) == "other"

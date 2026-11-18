@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- **Classifier is now score-based, not first-match**: domain keyword hits are weighted title (5) > tags (3) > description (1) and the best domain wins (ties keep the DOMAINS order). A stray "workflow"/"email" in a job body no longer overrides a clear title like "Senior Copywriter". +4 tests.
+
 ## 2026-11-15: tests, CI, and the faults the tests found
 
 Tests went from 12 to 122 (6 of them from the 14 November nightly change, merged here) (`./venv/bin/python -m pytest -q`). They cover the onsite/physical

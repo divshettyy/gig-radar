@@ -42,12 +42,25 @@ _DOMAIN_RES = [
     for key, _label, kws in DOMAINS if key != "other"
 ]
 
+# A keyword in the title says far more about the gig than one buried in the
+# description ("... we use a workflow tool" must not outvote a title of
+# "Senior Copywriter"), so hits are weighted by where they occur.
+W_TITLE, W_TAGS, W_DESC = 5, 3, 1
+
+def _hits(rx, text):
+    return len(set(m.group(0) for m in rx.finditer(text))) if text else 0
+
 def classify(title, tags, desc):
-    hay = (str(title) + " " + " ".join(tags or []) + " " + str(desc or "")).lower()
+    """Highest-scoring domain; ties go to the earlier entry in DOMAINS."""
+    t = str(title or "").lower()
+    g = " ".join(str(x) for x in (tags or [])).lower()
+    d = str(desc or "").lower()
+    best, best_score = "other", 0
     for key, rx in _DOMAIN_RES:
-        if rx.search(hay):
-            return key
-    return "other"
+        score = W_TITLE * _hits(rx, t) + W_TAGS * _hits(rx, g) + W_DESC * _hits(rx, d)
+        if score > best_score:
+            best, best_score = key, score
+    return best
 
 LABELS = {k: lbl for k, lbl, _ in DOMAINS}
 
