@@ -20,6 +20,7 @@ def init():
             id TEXT PRIMARY KEY, title TEXT, company TEXT, url TEXT, date INTEGER,
             tags TEXT, salary TEXT, loc TEXT, descr TEXT, src TEXT, domain TEXT,
             first_seen INTEGER)""")
+        c.execute("CREATE INDEX IF NOT EXISTS idx_jobs_date ON jobs(date DESC, first_seen DESC)")
         c.execute("CREATE TABLE IF NOT EXISTS meta(key TEXT PRIMARY KEY, val TEXT)")
         # Cross-feed duplicate detection: the same gig is often posted on
         # several feeds under different ids.
@@ -86,6 +87,17 @@ def upsert_jobs(jobs):
                  j.get("src", ""), j.get("domain", "other"), now))
             fresh.append(j)
     return fresh
+
+RETENTION_DAYS = 60
+
+def prune(days=RETENTION_DAYS):
+    """Delete jobs first seen more than `days` ago so the DB and the dashboard
+    query stay small. seen_keys is deliberately kept: a pruned gig that gets
+    re-listed on a feed is still recognised as a duplicate and never re-alerts.
+    Returns the number of rows removed."""
+    cutoff = int(time.time()) - int(days) * 86400
+    with _lock, _conn() as c:
+        return c.execute("DELETE FROM jobs WHERE first_seen < ?", (cutoff,)).rowcount
 
 def recent(limit=400):
     with _lock, _conn() as c:

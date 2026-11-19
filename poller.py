@@ -45,6 +45,10 @@ def poll_cycle(force=False):
             uniq.append(j)
 
     fresh = store.upsert_jobs(uniq)
+    try:
+        store.prune()
+    except Exception as e:   # housekeeping must never block alerts
+        print("[poll] prune failed: %s" % e)
     stored = len(fresh)
     # A feed's first successful fetch is its whole back catalogue. Alerting on it
     # would send dozens of old gigs when a feed that was down comes back.
