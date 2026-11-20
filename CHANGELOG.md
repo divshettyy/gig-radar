@@ -5,6 +5,15 @@
 - **Retention pruning**: jobs first seen >60 days ago are deleted each poll cycle (`store.prune`), keeping the DB and dashboard query small; `seen_keys` is retained so pruned gigs never re-alert. Added a date index on `jobs`. 2 new tests.
 - **Classifier is now score-based, not first-match**: domain keyword hits are weighted title (5) > tags (3) > description (1) and the best domain wins (ties keep the DOMAINS order). A stray "workflow"/"email" in a job body no longer overrides a clear title like "Senior Copywriter". +4 tests.
 
+## 2026-11-20: discoverability and dependency-hygiene pass (no code behaviour change)
+
+Part of a repository-wide polish effort. On top of the earlier README badges, topic
+tags and issue/PR templates, this pass adds a Dependabot configuration that opens
+grouped weekly pull requests for Python packages and GitHub Actions, an `.editorconfig`
+for consistent formatting across contributors, and upper version bounds on the three
+runtime dependencies (`requests<3`, `flask<4`, `python-dotenv<2`) so a future breaking
+major cannot land silently. The poller, classifier, store and notifier are unchanged.
+
 ## 2026-11-15: tests, CI, and the faults the tests found
 
 Tests went from 12 to 122 (6 of them from the 14 November nightly change, merged here) (`./venv/bin/python -m pytest -q`). They cover the onsite/physical
