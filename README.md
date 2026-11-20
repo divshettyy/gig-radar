@@ -1,5 +1,9 @@
 # Gig Radar
 
+[![CI](https://github.com/divshettyy/gig-radar/actions/workflows/ci.yml/badge.svg)](https://github.com/divshettyy/gig-radar/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](requirements.txt)
+
 **Your own freelance-gig radar: a public dashboard for quick browsing, plus a private local backend that watches your own accounts and texts/emails you the moment something new shows up.**
 
 Gig Radar is split into two parts:
