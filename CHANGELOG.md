@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **URL-based dedupe**: the same gig reached through two feeds is now collapsed by canonical posting URL (tracking params, www, fragment and trailing slash ignored) in addition to company+title, which also catches company-less feeds. Existing jobs are backfilled into `seen_keys` on init. 4 new tests.
+
 - **Retention pruning**: jobs first seen >60 days ago are deleted each poll cycle (`store.prune`), keeping the DB and dashboard query small; `seen_keys` is retained so pruned gigs never re-alert. Added a date index on `jobs`. 2 new tests.
 - **Classifier is now score-based, not first-match**: domain keyword hits are weighted title (5) > tags (3) > description (1) and the best domain wins (ties keep the DOMAINS order). A stray "workflow"/"email" in a job body no longer overrides a clear title like "Senior Copywriter". +4 tests.
 

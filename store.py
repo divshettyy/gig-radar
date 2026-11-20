@@ -25,10 +25,10 @@ def init():
         # Cross-feed duplicate detection: the same gig is often posted on
         # several feeds under different ids.
         c.execute("CREATE TABLE IF NOT EXISTS seen_keys(key TEXT PRIMARY KEY)")
-        for r in c.execute("SELECT title, company FROM jobs").fetchall():
-            k = content_key(r["title"], r["company"])
-            if k:
-                c.execute("INSERT OR IGNORE INTO seen_keys(key) VALUES(?)", (k,))
+        for r in c.execute("SELECT title, company, url FROM jobs").fetchall():
+            for k in (content_key(r["title"], r["company"]), url_key(r["url"])):
+                if k:
+                    c.execute("INSERT OR IGNORE INTO seen_keys(key) VALUES(?)", (k,))
 
 _NON_ALNUM = re.compile(r"[^a-z0-9]+")
 _NOISE = re.compile(r"\b(remote|worldwide|freelance|contract|full[- ]?time|part[- ]?time|m/f/d|f/m/d)\b")
@@ -38,6 +38,25 @@ def content_key(title, company):
     t = _NON_ALNUM.sub(" ", _NOISE.sub(" ", str(title or "").lower())).strip()
     c = _NON_ALNUM.sub(" ", str(company or "").lower()).strip()
     return (c + "|" + t) if (t and c) else ""
+
+_TRACKING = re.compile(r"^(utm_.*|ref|ref_src|source|src|fbclid|gclid|mc_.*)$", re.I)
+
+def url_key(url):
+    """Canonical form of a posting URL (scheme/www/fragment/trailing slash and
+    tracking params stripped) so the same gig linked from two feeds collapses
+    even when title/company text differs. Returns "" for non-http or empty urls."""
+    from urllib.parse import urlsplit, parse_qsl, urlencode
+    u = str(url or "").strip()
+    if not u.lower().startswith(("http://", "https://")):
+        return ""
+    sp = urlsplit(u)
+    host = sp.netloc.lower()
+    host = host[4:] if host.startswith("www.") else host
+    path = sp.path.rstrip("/")
+    q = sorted((k, v) for k, v in parse_qsl(sp.query) if not _TRACKING.match(k))
+    if not host or (not path and not q):
+        return ""          # bare homepage links identify nothing
+    return "url:" + host + path + ("?" + urlencode(q) if q else "")
 
 def get_meta(key, default=None):
     with _lock, _conn() as c:
@@ -73,11 +92,13 @@ def upsert_jobs(jobs):
             exists = c.execute("SELECT 1 FROM jobs WHERE id=?", (j["id"],)).fetchone()
             if exists:
                 continue
-            key = content_key(j.get("title"), j.get("company"))
-            if key:
-                if c.execute("SELECT 1 FROM seen_keys WHERE key=?", (key,)).fetchone():
-                    continue  # same gig already stored/alerted via another feed
-                c.execute("INSERT INTO seen_keys(key) VALUES(?)", (key,))
+            keys = [k for k in (content_key(j.get("title"), j.get("company")),
+                                url_key(j.get("url"))) if k]
+            if any(c.execute("SELECT 1 FROM seen_keys WHERE key=?", (k,)).fetchone()
+                   for k in keys):
+                continue  # same gig already stored/alerted via another feed
+            for k in keys:
+                c.execute("INSERT OR IGNORE INTO seen_keys(key) VALUES(?)", (k,))
             c.execute("""INSERT INTO jobs
                 (id,title,company,url,date,tags,salary,loc,descr,src,domain,first_seen)
                 VALUES(?,?,?,?,?,?,?,?,?,?,?,?)""",
