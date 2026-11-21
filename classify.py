@@ -97,11 +97,33 @@ _PHYSICAL_RE = re.compile(
         re.escape(p) + ("" if p in _STEMS else r"(?:s|es)?\b")
         for p in sorted(set(PHYSICAL) | _STEMS, key=len, reverse=True)) + ")")
 
+# Scam / low-quality patterns. Deliberately specific multi-word phrases: a bare
+# word like "commission" or "crypto" would drop legitimate gigs ("crypto
+# exchange backend developer", "sales role with commission").
+_SCAM_PATTERNS = [
+    r"registration fee", r"training fee", r"security deposit", r"pay (?:a |an )?(?:fee|deposit) to (?:apply|start)",
+    r"(?:buy|purchase) (?:your own |a )?(?:starter )?(?:kit|equipment) (?:to|before)",
+    r"commission[- ]only", r"100% commission",
+    r"multi[- ]?level marketing", r"\bmlm\b", r"network marketing", r"downline",
+    r"earn \$?\d[\d,]*\+? (?:per|a|/) ?(?:day|daily|hour) (?:from home|guaranteed|easily)",
+    r"guaranteed (?:income|earnings|\$)", r"get rich", r"passive income (?:system|opportunity)",
+    r"(?:whats ?app|telegram) (?:only|to apply)", r"no experience (?:needed|necessary|required),? (?:earn|make) \$",
+    r"forex signals?", r"crypto signals?", r"pump (?:and|&) dump",
+    r"send (?:us )?(?:a )?(?:payment|money|gift card)", r"cash (?:a )?check", r"gift cards?",
+]
+_SCAM_RE = re.compile("|".join(_SCAM_PATTERNS), re.I)
+
+def is_scammy(title, desc):
+    """True if the posting matches a known pay-to-work / MLM / get-rich pattern."""
+    return bool(_SCAM_RE.search((str(title or "") + " " + str(desc or ""))))
+
 def keep(title, tags, desc, loc, src):
     """True if the gig is remote AND plausibly doable with an AI agent."""
     t = (str(title) + " " + " ".join(tags or []) + " " + str(desc or "") + " "
          + str(loc or "")).lower()
     if _PHYSICAL_RE.search(t):
+        return False
+    if is_scammy(title, desc):
         return False
     locl = str(loc or "").lower()
     # Arbeitnow mixes onsite EU roles: loc is "Remote" when remote, else a city.

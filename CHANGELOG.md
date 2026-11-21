@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **Scam/low-quality filter**: `classify.is_scammy()` drops pay-to-apply (registration/training fees, starter kits), commission-only/MLM/downline, guaranteed-income, forex/crypto-signal and cheque-cashing postings in `keep()` before they reach the dashboard or alerts. Patterns are specific multi-word phrases so legitimate gigs ("crypto exchange backend developer", "base plus commission") are kept. 12 new tests.
+
 - **URL-based dedupe**: the same gig reached through two feeds is now collapsed by canonical posting URL (tracking params, www, fragment and trailing slash ignored) in addition to company+title, which also catches company-less feeds. Existing jobs are backfilled into `seen_keys` on init. 4 new tests.
 
 - **Retention pruning**: jobs first seen >60 days ago are deleted each poll cycle (`store.prune`), keeping the DB and dashboard query small; `seen_keys` is retained so pruned gigs never re-alert. Added a date index on `jobs`. 2 new tests.
