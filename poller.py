@@ -1,5 +1,6 @@
 """Fetch all due sources, store new jobs, send alerts. One cycle per call."""
 import time
+from concurrent.futures import ThreadPoolExecutor
 
 import store
 import notify
@@ -14,12 +15,30 @@ def poll_cycle(force=False):
     collected = []
     succeeded = 0
     backlog = set()   # sources fetched for the first time: their jobs are old, not news
+    due = []
     for name, fn, ttl in SOURCES:
         if not force and (now - store.last_fetch(name)) < ttl:
             STATUS.setdefault(name, {})["state"] = STATUS.get(name, {}).get("state", "cached")
             continue
+        due.append((name, fn))
+
+    # Fetch every due feed concurrently: one slow/timing-out feed (15 s timeout)
+    # no longer delays alerts from all the others. Network I/O only; results are
+    # consumed below in SOURCES order so processing stays deterministic and all
+    # SQLite access stays on this thread.
+    def _fetch(item):
         try:
-            jobs = fn()
+            return item[1](), None
+        except Exception as e:
+            return None, e
+
+    with ThreadPoolExecutor(max_workers=max(1, min(len(due), 8))) as pool:
+        results = list(pool.map(_fetch, due))
+
+    for (name, _fn), (jobs, err) in zip(due, results):
+        try:
+            if err is not None:
+                raise err
             jobs = [j for j in jobs
                     if keep(j.get("title"), j.get("tags"), j.get("desc"), j.get("loc"), name)]
             for j in jobs:

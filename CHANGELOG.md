@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **Alert latency**: due feeds are now fetched concurrently (up to 8 threads) instead of one after another, so a slow or timing-out feed (15 s timeout) no longer delays alerts from every other source; a poll cycle now takes roughly the slowest feed rather than the sum. Results are still processed in `SOURCES` order on one thread (SQLite stays single-threaded) and a failing feed stays isolated. 1 new test.
+
 - **Scam filter precision**: the bare `gift cards?` pattern dropped legitimate gigs ("developer for a gift card marketplace"). It now only fires on payment-context phrases (buy/purchase/pay in/send/redeem gift cards). 2 new tests.
 
 - **Scam/low-quality filter**: `classify.is_scammy()` drops pay-to-apply (registration/training fees, starter kits), commission-only/MLM/downline, guaranteed-income, forex/crypto-signal and cheque-cashing postings in `keep()` before they reach the dashboard or alerts. Patterns are specific multi-word phrases so legitimate gigs ("crypto exchange backend developer", "base plus commission") are kept. 12 new tests.

@@ -33,3 +33,20 @@ class Seeding(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class Concurrency(unittest.TestCase):
+    def test_slow_feed_does_not_serialize_and_failure_is_isolated(self):
+        import time
+        _fresh_db()
+        def slow():
+            time.sleep(0.4)
+            return [{"id": "s1", "title": "Python developer", "company": "S", "tags": [], "desc": "", "loc": "Remote", "date": 1}]
+        def boom(): raise RuntimeError("down")
+        srcs = [("S1", slow, 0), ("S2", slow, 0), ("S3", slow, 0), ("Bad", boom, 0)]
+        t0 = time.time()
+        with mock.patch.object(poller, "SOURCES", srcs), mock.patch.object(poller.notify, "alert"):
+            poller.poll_cycle(force=True)
+        self.assertLess(time.time() - t0, 1.0)          # serial would be >= 1.2 s
+        self.assertEqual(poller.STATUS["Bad"]["state"], "bad")
+        self.assertEqual(poller.STATUS["S1"]["state"], "ok")
