@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **Failure backoff**: a feed that errors (down, 429 rate-limit) now waits 2 min, doubling per consecutive failure up to 1 h, before the next retry, instead of being hit every cycle. Success resets it; `--force` bypasses it. 3 new tests.
+
 - **Alert latency**: due feeds are now fetched concurrently (up to 8 threads) instead of one after another, so a slow or timing-out feed (15 s timeout) no longer delays alerts from every other source; a poll cycle now takes roughly the slowest feed rather than the sum. Results are still processed in `SOURCES` order on one thread (SQLite stays single-threaded) and a failing feed stays isolated. 1 new test.
 
 - **Scam filter precision**: the bare `gift cards?` pattern dropped legitimate gigs ("developer for a gift card marketplace"). It now only fires on payment-context phrases (buy/purchase/pay in/send/redeem gift cards). 2 new tests.

@@ -8,6 +8,21 @@ from classify import classify, keep
 from sources import SOURCES
 
 STATUS = {}  # name -> {"state": ok|bad|skip, "n": int, "at": ts, "err": str}
+FAILS = {}   # name -> (consecutive failures, last failure ts); in-memory backoff
+BACKOFF_BASE = 120       # seconds after the first failure
+BACKOFF_MAX = 3600       # never wait longer than an hour between retries
+
+
+def backoff_remaining(name, now):
+    """Seconds a failing feed must still wait before a retry (0 = go ahead).
+    Doubles per consecutive failure, so a feed that is down or rate-limiting
+    (e.g. Reddit 429) isn't hammered every cycle and can't slow the others."""
+    n, at = FAILS.get(name, (0, 0))
+    if not n:
+        return 0
+    wait = min(BACKOFF_MAX, BACKOFF_BASE * 2 ** (n - 1))
+    return max(0, at + wait - now)
+
 
 def poll_cycle(force=False):
     store.init()
@@ -19,6 +34,8 @@ def poll_cycle(force=False):
     for name, fn, ttl in SOURCES:
         if not force and (now - store.last_fetch(name)) < ttl:
             STATUS.setdefault(name, {})["state"] = STATUS.get(name, {}).get("state", "cached")
+            continue
+        if not force and backoff_remaining(name, now) > 0:
             continue
         due.append((name, fn))
 
@@ -50,8 +67,10 @@ def poll_cycle(force=False):
             collected.extend(jobs)
             succeeded += 1
             store.mark_fetch(name)
+            FAILS.pop(name, None)
             STATUS[name] = {"state": "ok", "n": len(jobs), "at": int(now), "err": ""}
         except Exception as e:
+            FAILS[name] = (FAILS.get(name, (0, 0))[0] + 1, now)
             STATUS[name] = {"state": "bad", "n": 0, "at": int(now), "err": str(e)[:160]}
             print("[poll] %s failed: %s" % (name, e))
 

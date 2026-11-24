@@ -14,6 +14,7 @@ def alerts(monkeypatch):
     sent = []
     monkeypatch.setattr(notify, "alert", lambda jobs: sent.append(list(jobs)))
     poller.STATUS.clear()
+    poller.FAILS.clear()
     return sent
 
 
