@@ -41,3 +41,18 @@ def test_gift_card_business_gigs_kept():
               "Copywriter for gift card e-commerce brand"):
         assert not is_scammy(t, ""), t
         assert keep(t, [], "", "Remote", "RemoteOK"), t
+
+
+def test_extra_scam_patterns_dropped():
+    from classify import is_scammy
+    for desc in ("A small onboarding fee is required", "Package forwarding from home",
+                 "Become a money mule agent", "Pay a refundable deposit", "Reshipping coordinator",
+                 "You will receive a check and then wire the rest"):
+        assert is_scammy("Remote assistant", desc), desc
+
+
+def test_extra_patterns_keep_legit_gigs():
+    from classify import is_scammy
+    for desc in ("Build a payment processing API in Python", "Onboarding flow redesign for a SaaS app",
+                 "Shipping integration for an ecommerce store"):
+        assert not is_scammy("Developer", desc), desc

@@ -110,6 +110,9 @@ _SCAM_PATTERNS = [
     r"(?:whats ?app|telegram) (?:only|to apply)", r"no experience (?:needed|necessary|required),? (?:earn|make) \$",
     r"forex signals?", r"crypto signals?", r"pump (?:and|&) dump",
     r"send (?:us )?(?:a )?(?:payment|money|gift card)", r"cash (?:a )?check",
+    r"(?:processing|application|onboarding|background[- ]check|admin(?:istration)?) fee",
+    r"refundable deposit", r"re-?shipping", r"package (?:forwarding|reshipping)",
+    r"money (?:mule|transfer agent)", r"payment processing agent", r"receive (?:a |the )?(?:check|cheque) (?:and|then)",
     r"(?:buy|purchase|pay(?:ment)?(?: in| with| by)?|send|wire|redeem|scratch) (?:us |the |some |your )?(?:\w+ )?gift ?cards?",
 ]
 _SCAM_RE = re.compile("|".join(_SCAM_PATTERNS), re.I)

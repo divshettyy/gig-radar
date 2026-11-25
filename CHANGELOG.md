@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **Scam filter coverage**: added pay-to-apply fee variants (processing/application/onboarding/background-check/admin fee, refundable deposit) and reshipping / money-mule / cheque-forwarding patterns. Legit gigs mentioning payment processing APIs, onboarding flows or shipping integrations are kept. 2 new tests.
+
 - **Failure backoff**: a feed that errors (down, 429 rate-limit) now waits 2 min, doubling per consecutive failure up to 1 h, before the next retry, instead of being hit every cycle. Success resets it; `--force` bypasses it. 3 new tests.
 
 - **Alert latency**: due feeds are now fetched concurrently (up to 8 threads) instead of one after another, so a slow or timing-out feed (15 s timeout) no longer delays alerts from every other source; a poll cycle now takes roughly the slowest feed rather than the sum. Results are still processed in `SOURCES` order on one thread (SQLite stays single-threaded) and a failing feed stays isolated. 1 new test.
