@@ -30,6 +30,26 @@ def test_missing_fields_do_not_crash_and_are_kept():
     assert classify.keep(None, None, None, None, "Remotive") is True
 
 
+@pytest.mark.parametrize("tags", [
+    [123, None, "python"],      # numeric + null tags from messy feed JSON
+    [{"name": "backend"}],      # a dict tag
+    (1, 2, 3),                  # a non-list iterable of ints
+])
+def test_non_string_tags_do_not_crash_keep(tags):
+    # keep() must coerce tags like classify() does. Before the fix a single
+    # non-string tag raised TypeError inside poller/digest's keep() filter
+    # comprehension, which the per-feed try/except swallowed -- silently
+    # dropping EVERY job from that feed for the whole cycle, not just the one
+    # bad listing.
+    assert classify.keep("Remote Python Developer", tags, "desc", "Remote", "RemoteOK") is True
+
+
+def test_non_string_physical_tag_still_drops():
+    # Coercion must not weaken the physical-role filter: a physical keyword in
+    # the tags still drops the gig even when other tags are non-strings.
+    assert classify.keep("Assistant", [None, "nursing", 7], "", "Remote", "Jobicy") is False
+
+
 def test_arbeitnow_needs_remote_in_location_other_sources_do_not():
     assert classify.keep("Python developer", [], "", "Munich", "Arbeitnow") is False
     assert classify.keep("Python developer", [], "", "Munich", "Remotive") is True

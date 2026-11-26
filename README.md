@@ -4,26 +4,41 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](requirements.txt)
 
-**Your own freelance-gig radar: a public dashboard for quick browsing, plus a private local backend that watches your own accounts and texts/emails you the moment something new shows up.**
+**Find freelance work you can actually deliver with Claude — fast.** Gig Radar pulls remote, worldwide-eligible gigs (open to India and anywhere else) from a dozen job feeds, strips out the onsite/physical roles, scores each listing into a Claude-doable work category, dedupes the same gig across feeds, and pings you by email/SMS the moment a new one lands.
+
+**▶ Live demo (no install, no account):** **[open the public dashboard artifact](https://claude.ai/artifact/4AD45Vbehy3qP1qQFVdNNp)** — 6 CORS-open public feeds + a directory of 40+ freelance/gig portals, read-only and safe to share.
 
 Gig Radar is split into two parts:
 
-- **Frontend (public, read-only):** a shareable dashboard artifact that lists 6 public remote-job feeds and a directory of 40+ freelance/gig portals — no account, no secrets, safe to share.
-- **Backend (this repo, private):** a small local Flask service that polls those same public feeds *and* your own authenticated accounts (Reddit r/forhire, Freelancer.com, optionally Upwork), dedupes everything into a local SQLite database, serves its own richer dashboard, and fires an **email and/or SMS alert** the moment a new gig appears. All credentials stay in a local `.env` file and never leave the machine.
+- **Frontend (public, read-only):** the shareable dashboard above — 6 public remote-job feeds and the 40+ portal directory, no account, no secrets.
+- **Backend (this repo):** a small local Flask service that polls those same public feeds *and* your own authenticated accounts (Reddit r/forhire, Freelancer.com, optionally Upwork), dedupes everything into a local SQLite database, serves its own richer dashboard at `http://localhost:8787`, and fires an **email and/or SMS alert** on new gigs. All credentials stay in a local `.env` file and never leave the machine.
 
-> Screenshot / demo: _add a screenshot of the local dashboard (`http://localhost:8787`) here._
+## How it works
+
+```mermaid
+flowchart LR
+    P["6 public feeds<br/>RemoteOK · Remotive · Arbeitnow<br/>Jobicy · WeWorkRemotely · HN"] --> K
+    A["your auth feeds<br/>Reddit · Freelancer · Upwork"] --> K
+    K["keep() filter<br/>strip untrusted HTML →<br/>drop onsite / physical,<br/>remote-only"] --> C["classify()<br/>score title &gt; tags &gt; desc<br/>into 10 Claude-doable categories"]
+    C --> D["dedup store<br/>SQLite keyed by id +<br/>normalized title + canonical URL"]
+    D --> W["local dashboard<br/>localhost:8787"]
+    D --> N["email / SMS alerts<br/>new gigs only, no first-run flood"]
+    D --> M["Markdown digest<br/>digests/&lt;date&gt;.md"]
+```
 
 ## Features
 
-- Polls 6 public feeds with zero configuration: RemoteOK, Remotive, Arbeitnow, Jobicy, We Work Remotely, Hacker News "Who is hiring".
-- Optional authenticated feeds: Reddit r/forhire (`[Hiring]` / `[Task]`), Freelancer.com (your OAuth token), Upwork (best-effort, gated API).
-- Keyword-based classification into Claude-doable work categories (AI/chatbot, writing, coding, data, SEO, decks, translation, spreadsheets, marketing, admin).
-- Filters out onsite and physical/non-remote roles automatically.
-- Deduped SQLite store; background poll loop with per-source TTL and status reporting.
-- Local web dashboard (`dashboard.html`) with a Platforms tab and a "Claude playbook" tab.
-- Email (Gmail SMTP) and/or SMS (Twilio) alerts on new gigs, safe no-ops if unconfigured.
-- `digest.py` generates a dated Markdown digest of fresh, Claude-doable, remote gigs — usable standalone (no secrets needed) for a scheduled/cloud routine.
-- systemd unit + installer for 24/7 boot start under WSL2/Linux.
+| Capability | What it does |
+|---|---|
+| **6 zero-config public feeds** | RemoteOK, Remotive, Arbeitnow, Jobicy, We Work Remotely, Hacker News "Who is hiring" — work with an empty `.env` |
+| **Optional authenticated feeds** | Reddit r/forhire (`[Hiring]`/`[Task]`), Freelancer.com, Upwork (best-effort, gated API) via your own tokens |
+| **Claude-doable classification** | Keyword scoring weighted title > tags > description into 10 AI-workable categories (AI/chatbot, writing, coding, data, SEO, decks, translation, spreadsheets, marketing, admin) |
+| **Remote + signal filter** | Drops onsite and physical/non-remote roles automatically; tuned against false negatives |
+| **Cross-feed dedup** | SQLite store keyed by id, normalized `(company, title)` and canonical URL — the same gig cross-posted to 3 feeds shows once |
+| **New-gig alerts** | Email (Gmail SMTP) and/or SMS (Twilio); no first-run flood, safe no-ops when unconfigured |
+| **40+ portal directory** | A hand-curated list of freelance/gig platforms (incl. ones with no API) surfaced in the dashboard's Platforms tab, so nothing pollable *or* manual slips past you |
+| **Standalone Markdown digest** | `digest.py` writes a dated digest from public feeds only — no secrets, cron/cloud friendly |
+| **Runs 24/7** | `run.sh` venv bootstrap, or a systemd unit for boot start on Linux/WSL2 |
 
 ## Tech stack
 
@@ -174,7 +189,7 @@ Replace `Ubuntu` with your distro name from `wsl -l -q`.
 
 ## Roadmap
 
-- [x] Test coverage for sources, store, poller, notify, digest and the local API (122 tests)
+- [x] Test coverage for sources, store, poller, notify, digest and the local API (137 tests)
 - [ ] Pluggable notification channels (Slack/Discord webhook, Pushover)
 - [ ] Per-domain alert filtering (only notify for selected categories)
 - [ ] Dockerfile for one-command deploy off WSL/systemd

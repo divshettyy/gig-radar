@@ -123,7 +123,12 @@ def is_scammy(title, desc):
 
 def keep(title, tags, desc, loc, src):
     """True if the gig is remote AND plausibly doable with an AI agent."""
-    t = (str(title) + " " + " ".join(tags or []) + " " + str(desc or "") + " "
+    # Tags come from messy third-party JSON and are occasionally numeric or
+    # null; coerce each element to str (exactly as classify() does) so a single
+    # malformed tag can't raise mid-comprehension in poller/digest and drop the
+    # whole feed's batch for that cycle.
+    tagtext = " ".join(str(x) for x in (tags or []))
+    t = (str(title or "") + " " + tagtext + " " + str(desc or "") + " "
          + str(loc or "")).lower()
     if _PHYSICAL_RE.search(t):
         return False

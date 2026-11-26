@@ -17,6 +17,29 @@
 - **Retention pruning**: jobs first seen >60 days ago are deleted each poll cycle (`store.prune`), keeping the DB and dashboard query small; `seen_keys` is retained so pruned gigs never re-alert. Added a date index on `jobs`. 2 new tests.
 - **Classifier is now score-based, not first-match**: domain keyword hits are weighted title (5) > tags (3) > description (1) and the best domain wins (ties keep the DOMAINS order). A stray "workflow"/"email" in a job body no longer overrides a clear title like "Senior Copywriter". +4 tests.
 
+## 2026-11-21: README polish + feed-robustness fix
+
+Market-grade README and a real robustness fix found while reviewing the filter.
+
+Fixed
+- **A single malformed tag no longer drops a whole feed.** `classify.keep()` built its
+  search text with `" ".join(tags or [])`, which raised `TypeError` if a feed returned a
+  non-string tag (a number or `null` in messy third-party JSON). Because `keep()` runs inside
+  the per-feed filter comprehension in `poller.py`/`digest.py`, that exception was swallowed by
+  the surrounding try/except and silently discarded *every* job from that feed for the cycle —
+  not just the one bad listing. `keep()` now coerces each tag with `str(x)`, exactly as
+  `classify()` already did, and `title`/`loc` use `or ""` for consistency. The physical-role
+  filter is unchanged and untrusted HTML is still stripped. +5 tests (3 unit cases for
+  non-string/dict/tuple tags, 1 that a physical keyword among non-string tags still drops, and
+  1 poller-level test proving both good jobs survive). Suite 132 → 137, all green.
+
+Changed
+- **README rewritten for first-time visitors.** Sharper value proposition (find remote,
+  worldwide/India-eligible, Claude-doable freelance work fast), a one-click **Live demo** link
+  to the public dashboard artifact, a Mermaid flow diagram (feeds → keep/classify filter →
+  dedup store → dashboard + alerts + digest), a feature table, and the 40+ portal directory
+  called out as a selling point. No code behaviour change from the README edits.
+
 ## 2026-11-20: discoverability and dependency-hygiene pass (no code behaviour change)
 
 Part of a repository-wide polish effort. On top of the earlier README badges, topic

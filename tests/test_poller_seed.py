@@ -30,6 +30,25 @@ class Seeding(unittest.TestCase):
             poller.poll_cycle(force=True)
             al.assert_called_once()
 
+    def test_one_job_with_a_non_string_tag_does_not_drop_the_whole_feed(self):
+        # A malformed tag used to raise in keep()'s filter comprehension, which
+        # poll_cycle's per-feed try/except swallowed -- losing every job in the
+        # batch. Both good jobs must survive and get stored.
+        _fresh_db()
+        feed = [
+            {"id": "b1", "title": "Remote Python developer", "company": "C1",
+             "tags": [123, None, "python"], "desc": "", "loc": "Remote", "date": 2},
+            {"id": "b2", "title": "Remote data analyst", "company": "C2",
+             "tags": ["data"], "desc": "", "loc": "Remote", "date": 1},
+        ]
+        with mock.patch.object(poller, "SOURCES", [("A", lambda: list(feed), 0)]), \
+                mock.patch.object(poller.notify, "alert"):
+            poller.poll_cycle(force=True)  # first run seeds silently
+        self.assertEqual(poller.STATUS["A"]["state"], "ok")
+        self.assertEqual(poller.STATUS["A"]["n"], 2)
+        ids = {r["id"] for r in store.recent()}
+        self.assertEqual(ids, {"b1", "b2"})
+
 
 if __name__ == "__main__":
     unittest.main()
