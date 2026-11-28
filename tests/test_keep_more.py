@@ -91,3 +91,12 @@ def test_classify_domains(title, tags, desc, domain):
 def test_classify_first_domain_wins_and_handles_none():
     assert classify.classify("Prompt writer", None, None) == "ai"   # ai is listed before write
     assert classify.classify(None, None, None) == "other"
+
+
+def test_physical_words_in_description_do_not_drop_software_gigs():
+    assert classify.keep("Python Developer", ["python"],
+                         "Build a scheduling chatbot for nursing homes and electricians", "Remote", "RemoteOK") is True
+
+
+def test_physical_words_in_title_still_drop():
+    assert classify.keep("Registered Nurse", [], "remote triage", "Remote", "RemoteOK") is False

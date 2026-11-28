@@ -130,7 +130,10 @@ def keep(title, tags, desc, loc, src):
     tagtext = " ".join(str(x) for x in (tags or []))
     t = (str(title or "") + " " + tagtext + " " + str(desc or "") + " "
          + str(loc or "")).lower()
-    if _PHYSICAL_RE.search(t):
+    # Only title + tags decide "physical": the description of a legit software
+    # gig routinely mentions nurses, chefs, mechanics etc. as its *users*
+    # ("chatbot for nursing homes", "scheduling tool for electricians").
+    if _PHYSICAL_RE.search((str(title or "") + " " + tagtext).lower()):
         return False
     if is_scammy(title, desc):
         return False
